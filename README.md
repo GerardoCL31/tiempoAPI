@@ -1,4 +1,4 @@
-# ClimaAtlas
+# ClimaAPI
 
 ClimaAtlas es una aplicacion web tipo mashup que permite buscar una ciudad y ver en una sola pantalla:
 
