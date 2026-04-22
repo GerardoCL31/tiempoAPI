@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClimaAtlas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <p class="tag">Mashup de APIs</p>
+      <h1>El tiempo.API</h1>
+      <p class="intro">Busca una ciudad y consulta clima, país y un resumen de Wikipedia en una sola página.</p>
+
+      <form id="search-form" class="search-form">
+        <input id="city-input" type="text" placeholder="Ej. Madrid, Tokyo, Lima" required>
+        <button type="submit">Buscar</button>
+      </form>
+
+      <div class="chips">
+        <button type="button" class="chip" data-city="Madrid">Madrid</button>
+        <button type="button" class="chip" data-city="Tokyo">Tokyo</button>
+        <button type="button" class="chip" data-city="Paris">Paris</button>
+      </div>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section id="results" class="results hidden">
+      <article class="card main-card">
+        <div class="title-row">
+          <div>
+            <p id="place-line" class="muted"></p>
+            <h2 id="city-name">--</h2>
+            <p id="coords" class="muted"></p>
+          </div>
+          <span id="source-badge" class="badge">API</span>
+        </div>
+
+        <div class="weather-box">
+          <div>
+            <p class="section-label">Clima actual</p>
+            <p id="weather-text" class="weather-text">--</p>
+          </div>
+          <p id="temperature" class="temperature">--</p>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span>Sensación</span>
+            <strong id="feels-like">--</strong>
+          </div>
+          <div class="stat">
+            <span>Humedad</span>
+            <strong id="humidity">--</strong>
+          </div>
+          <div class="stat">
+            <span>Viento</span>
+            <strong id="wind">--</strong>
+          </div>
+        </div>
+
+        <div>
+          <p class="section-label">Próximos 3 días</p>
+          <div id="forecast" class="forecast"></div>
+        </div>
+      </article>
+
+      <div class="grid">
+        <article class="card">
+          <p class="section-label">País</p>
+          <div class="country-head">
+            <img id="flag" alt="Bandera">
+            <div>
+              <h3 id="country-name">--</h3>
+              <p id="country-region" class="muted"></p>
+            </div>
+          </div>
+          <div class="list">
+            <p><strong>Capital:</strong> <span id="country-capital">--</span></p>
+            <p><strong>Población:</strong> <span id="country-population">--</span></p>
+            <p><strong>Idiomas:</strong> <span id="country-languages">--</span></p>
+            <p><strong>Moneda:</strong> <span id="country-currency">--</span></p>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="section-label">Wikipedia</p>
+          <img id="article-image" class="article-image" alt="Ciudad">
+          <p id="article-extract" class="article-text"></p>
+          <a id="article-link" href="#" target="_blank" rel="noreferrer">Ver artículo</a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
