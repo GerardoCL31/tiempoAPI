@@ -1,5 +1,5 @@
 const CACHE_TTL_MS = 30 * 60 * 1000;
-const CACHE_PREFIX = "climaatlas:v1:";
+const CACHE_PREFIX = "climaatlas:v2:";
 
 const form = document.getElementById("search-form");
 const cityInput = document.getElementById("city-input");
@@ -17,6 +17,7 @@ const el = {
   feelsLike: document.getElementById("feels-like"),
   humidity: document.getElementById("humidity"),
   wind: document.getElementById("wind"),
+  aiAdvice: document.getElementById("ai-advice"),
   flag: document.getElementById("flag"),
   countryName: document.getElementById("country-name"),
   countryRegion: document.getElementById("country-region"),
@@ -30,27 +31,27 @@ const el = {
 };
 
 const weatherLabels = {
-  0: "Despejado",
-  1: "Mayormente despejado",
-  2: "Parcialmente nuboso",
-  3: "Cubierto",
-  45: "Niebla",
-  48: "Niebla",
-  51: "Llovizna ligera",
-  53: "Llovizna",
-  55: "Llovizna intensa",
-  61: "Lluvia ligera",
-  63: "Lluvia",
-  65: "Lluvia intensa",
-  71: "Nieve ligera",
-  73: "Nieve",
-  75: "Nieve intensa",
-  80: "Chubascos",
-  81: "Chubascos",
-  82: "Chubascos fuertes",
-  95: "Tormenta",
-  96: "Tormenta",
-  99: "Tormenta",
+  0: "Clear sky",
+  1: "Mostly clear",
+  2: "Partly cloudy",
+  3: "Cloudy",
+  45: "Fog",
+  48: "Fog",
+  51: "Light drizzle",
+  53: "Drizzle",
+  55: "Heavy drizzle",
+  61: "Light rain",
+  63: "Rain",
+  65: "Heavy rain",
+  71: "Light snow",
+  73: "Snow",
+  75: "Heavy snow",
+  80: "Showers",
+  81: "Showers",
+  82: "Strong showers",
+  95: "Thunderstorm",
+  96: "Thunderstorm",
+  99: "Thunderstorm",
 };
 
 function setStatus(text, isError = false) {
@@ -91,26 +92,33 @@ async function cachedFetchJson(key, url) {
     return { data: cached, source: "cache" };
   }
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`La petición falló (${response.status})`);
-  }
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 8000);
 
-  const data = await response.json();
-  writeCache(key, data);
-  return { data, source: "api" };
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    writeCache(key, data);
+    return { data, source: "api" };
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 async function getCity(query) {
   const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
   url.searchParams.set("name", query);
   url.searchParams.set("count", "1");
-  url.searchParams.set("language", "es");
+  url.searchParams.set("language", "en");
   url.searchParams.set("format", "json");
 
   const { data, source } = await cachedFetchJson(`geo:${norm(query)}`, url.toString());
   if (!data.results?.length) {
-    throw new Error("No se encontró esa ciudad.");
+    throw new Error("City not found.");
   }
 
   return { city: data.results[0], source };
@@ -142,12 +150,67 @@ function getArticle(name) {
   );
 }
 
+function fallbackCountry(city) {
+  return {
+    name: { common: city.country || "No data" },
+    region: "No data",
+    subregion: "",
+    capital: [],
+    population: 0,
+    languages: null,
+    currencies: null,
+    flags: null,
+  };
+}
+
+function fallbackArticle(city) {
+  return {
+    title: city.name,
+    extract: "City article information is not available right now, but the live weather forecast is ready.",
+    thumbnail: null,
+    content_urls: {
+      desktop: {
+        page: `https://en.wikipedia.org/wiki/${encodeURIComponent(city.name)}`,
+      },
+    },
+  };
+}
+
 function temp(value) {
-  return `${Math.round(value)} °C`;
+  return `${Math.round(value)} deg C`;
 }
 
 function number(value) {
-  return new Intl.NumberFormat("es-ES").format(value);
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function getAdvice(current, daily) {
+  const tempNow = current.temperature_2m;
+  const wind = current.wind_speed_10m;
+  const rainChance = Math.max(...daily.precipitation_probability_max.map((item) => item ?? 0));
+  const weatherCode = current.weather_code;
+
+  if (weatherCode >= 95) {
+    return "Storm risk detected. Stay indoors if possible and avoid open areas.";
+  }
+
+  if (tempNow >= 32) {
+    return "Heat warning. Drink water, avoid direct sun and plan outdoor activities for later.";
+  }
+
+  if (tempNow <= 3) {
+    return "Cold warning. Wear warm clothes and check transport conditions before leaving.";
+  }
+
+  if (wind >= 35) {
+    return "Strong wind detected. Be careful with bikes, scooters and outdoor objects.";
+  }
+
+  if (rainChance >= 60) {
+    return "Rain is likely soon. Take an umbrella and protect electronic devices.";
+  }
+
+  return "Conditions look safe. The app recommends normal activity and checking the forecast again later.";
 }
 
 function renderForecast(daily) {
@@ -157,7 +220,7 @@ function renderForecast(daily) {
     const item = document.createElement("div");
     item.className = "forecast-item";
 
-    const label = new Date(date).toLocaleDateString("es-ES", {
+    const label = new Date(date).toLocaleDateString("en-US", {
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -165,9 +228,9 @@ function renderForecast(daily) {
 
     item.innerHTML = `
       <strong>${label}</strong>
-      <p>${weatherLabels[daily.weather_code[index]] || "Sin dato"}</p>
+      <p>${weatherLabels[daily.weather_code[index]] || "No data"}</p>
       <p>${temp(daily.temperature_2m_min[index])} / ${temp(daily.temperature_2m_max[index])}</p>
-      <p>Lluvia: ${daily.precipitation_probability_max[index] ?? 0}%</p>
+      <p>Rain: ${daily.precipitation_probability_max[index] ?? 0}%</p>
     `;
 
     forecastEl.appendChild(item);
@@ -175,35 +238,36 @@ function renderForecast(daily) {
 }
 
 function render(city, weather, country, article, sourceLabel) {
-  const countryName = country.translations?.spa?.common || country.name?.common || city.country;
-  const languages = country.languages ? Object.values(country.languages).join(", ") : "Sin dato";
+  const countryName = country.name?.common || city.country;
+  const languages = country.languages ? Object.values(country.languages).join(", ") : "No data";
   const currencies = country.currencies
     ? Object.values(country.currencies).map((item) => item.name).join(", ")
-    : "Sin dato";
+    : "No data";
 
-  el.placeLine.textContent = `${city.country}${city.admin1 ? ` · ${city.admin1}` : ""}`;
+  el.placeLine.textContent = `${city.country}${city.admin1 ? ` - ${city.admin1}` : ""}`;
   el.cityName.textContent = city.name;
-  el.coords.textContent = `Lat ${city.latitude.toFixed(2)} · Lon ${city.longitude.toFixed(2)} · ${weather.timezone}`;
+  el.coords.textContent = `Lat ${city.latitude.toFixed(2)} - Lon ${city.longitude.toFixed(2)} - ${weather.timezone}`;
   el.sourceBadge.textContent = sourceLabel;
 
-  el.weatherText.textContent = weatherLabels[weather.current.weather_code] || "Sin dato";
+  el.weatherText.textContent = weatherLabels[weather.current.weather_code] || "No data";
   el.temperature.textContent = temp(weather.current.temperature_2m);
   el.feelsLike.textContent = temp(weather.current.apparent_temperature);
   el.humidity.textContent = `${weather.current.relative_humidity_2m}%`;
   el.wind.textContent = `${Math.round(weather.current.wind_speed_10m)} km/h`;
+  el.aiAdvice.textContent = getAdvice(weather.current, weather.daily);
 
   el.flag.src = country.flags?.png || "";
-  el.flag.alt = `Bandera de ${countryName}`;
+  el.flag.alt = `Flag of ${countryName}`;
   el.countryName.textContent = countryName;
-  el.countryRegion.textContent = `${country.region || "Sin dato"}${country.subregion ? ` · ${country.subregion}` : ""}`;
-  el.countryCapital.textContent = country.capital?.join(", ") || "Sin dato";
+  el.countryRegion.textContent = `${country.region || "No data"}${country.subregion ? ` - ${country.subregion}` : ""}`;
+  el.countryCapital.textContent = country.capital?.join(", ") || "No data";
   el.countryPopulation.textContent = number(country.population || 0);
   el.countryLanguages.textContent = languages;
   el.countryCurrency.textContent = currencies;
 
   el.articleImage.src = article.thumbnail?.source || country.flags?.png || "";
   el.articleImage.alt = article.title || city.name;
-  el.articleExtract.textContent = article.extract || "Wikipedia no devolvió resumen para esta ciudad.";
+  el.articleExtract.textContent = article.extract || "Wikipedia did not return a summary for this city.";
   el.articleLink.href = article.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(city.name)}`;
 
   renderForecast(weather.daily);
@@ -211,7 +275,7 @@ function render(city, weather, country, article, sourceLabel) {
 }
 
 async function loadCity(query) {
-  setStatus("Consultando APIs...");
+  setStatus("Consulting live APIs...");
 
   try {
     const currentUrl = new URL(window.location.href);
@@ -219,18 +283,26 @@ async function loadCity(query) {
     window.history.replaceState({}, "", currentUrl);
 
     const { city, source: citySource } = await getCity(query);
-    const [{ data: weather, source: weatherSource }, { country, source: countrySource }, { data: article, source: articleSource }] =
-      await Promise.all([
-        getWeather(city.latitude, city.longitude),
-        getCountry(city.country_code),
-        getArticle(city.name),
-      ]);
+    const { data: weather, source: weatherSource } = await getWeather(city.latitude, city.longitude);
+    const [countryResult, articleResult] = await Promise.allSettled([
+      getCountry(city.country_code),
+      getArticle(city.name),
+    ]);
 
-    const allCached = [citySource, weatherSource, countrySource, articleSource].every((item) => item === "cache");
-    render(city, weather, country, article, allCached ? "Cache" : "API");
-    setStatus(`Datos cargados para ${city.name}.`);
+    const countryData =
+      countryResult.status === "fulfilled"
+        ? countryResult.value
+        : { country: fallbackCountry(city), source: "offline" };
+    const articleData =
+      articleResult.status === "fulfilled"
+        ? articleResult.value
+        : { data: fallbackArticle(city), source: "offline" };
+
+    const allCached = [citySource, weatherSource, countryData.source, articleData.source].every((item) => item === "cache");
+    render(city, weather, countryData.country, articleData.data, allCached ? "Cache" : "API");
+    setStatus(`Future forecast loaded for ${city.name}.`);
   } catch (error) {
-    setStatus(error.message || "Ha ocurrido un error.", true);
+    setStatus(error.message || "Something went wrong.", true);
   }
 }
 

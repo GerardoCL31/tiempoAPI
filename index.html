@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClimaAPI</title>
+  <title>ClimaAtlas Future</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="container">
     <section class="hero">
-      <p class="tag">Mashup de APIs</p>
-      <h1>El tiempo.API</h1>
-      <p class="intro">Busca una ciudad y consulta clima, país y un resumen de Wikipedia en una sola página.</p>
+      <p class="tag">Project Term 3 - Future app</p>
+      <h1>ClimaAtlas Future</h1>
+      <p class="intro">
+        A futuristic weather app that combines live climate data, country
+        information and AI safety advice to protect people before the weather
+        becomes dangerous.
+      </p>
 
       <form id="search-form" class="search-form">
-        <input id="city-input" type="text" placeholder="Ej. Madrid, Tokyo, Lima" required>
-        <button type="submit">Buscar</button>
+        <input id="city-input" type="text" placeholder="Example: Madrid, Tokyo, Lima" required>
+        <button type="submit">Search</button>
       </form>
 
       <div class="chips">
@@ -40,7 +44,7 @@
 
         <div class="weather-box">
           <div>
-            <p class="section-label">Clima actual</p>
+            <p class="section-label">Current climate scan</p>
             <p id="weather-text" class="weather-text">--</p>
           </div>
           <p id="temperature" class="temperature">--</p>
@@ -48,30 +52,35 @@
 
         <div class="stats">
           <div class="stat">
-            <span>Sensación</span>
+            <span>Feels like</span>
             <strong id="feels-like">--</strong>
           </div>
           <div class="stat">
-            <span>Humedad</span>
+            <span>Humidity</span>
             <strong id="humidity">--</strong>
           </div>
           <div class="stat">
-            <span>Viento</span>
+            <span>Wind</span>
             <strong id="wind">--</strong>
           </div>
         </div>
 
+        <div class="advice-box">
+          <p class="section-label">AI safety recommendation</p>
+          <p id="ai-advice">Search for a city to receive a weather safety plan.</p>
+        </div>
+
         <div>
-          <p class="section-label">Próximos 3 días</p>
+          <p class="section-label">Next 3 days</p>
           <div id="forecast" class="forecast"></div>
         </div>
       </article>
 
       <div class="grid">
         <article class="card">
-          <p class="section-label">País</p>
+          <p class="section-label">Country context</p>
           <div class="country-head">
-            <img id="flag" alt="Bandera">
+            <img id="flag" alt="Flag">
             <div>
               <h3 id="country-name">--</h3>
               <p id="country-region" class="muted"></p>
@@ -79,21 +88,21 @@
           </div>
           <div class="list">
             <p><strong>Capital:</strong> <span id="country-capital">--</span></p>
-            <p><strong>Población:</strong> <span id="country-population">--</span></p>
-            <p><strong>Idiomas:</strong> <span id="country-languages">--</span></p>
-            <p><strong>Moneda:</strong> <span id="country-currency">--</span></p>
+            <p><strong>Population:</strong> <span id="country-population">--</span></p>
+            <p><strong>Languages:</strong> <span id="country-languages">--</span></p>
+            <p><strong>Currency:</strong> <span id="country-currency">--</span></p>
           </div>
         </article>
 
         <article class="card">
-          <p class="section-label">Wikipedia</p>
-          <img id="article-image" class="article-image" alt="Ciudad">
+          <p class="section-label">City knowledge</p>
+          <img id="article-image" class="article-image" alt="City">
           <p id="article-extract" class="article-text"></p>
-          <a id="article-link" href="#" target="_blank" rel="noreferrer">Ver artículo</a>
+          <a id="article-link" href="#" target="_blank" rel="noreferrer">Read article</a>
         </article>
       </div>
     </section>
-  </main>
+
 
   <script src="app.js"></script>
 </body>

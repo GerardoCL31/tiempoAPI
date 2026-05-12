@@ -1,0 +1,82 @@
+ClimaAtlas Future
+
+WHAT IT IS AND MAIN DESCRIPTION
+
+A weather app from the future
+
+ClimaAtlas Future is an advanced version of a weather app. It does not only
+show temperature. It studies the city, the forecast, the country and local
+information to create a personal climate safety plan.
+
+
+THE GOAL OF THE APP
+
+Help people prepare before the weather becomes a problem
+
+The goal is to warn people about heat, rain, wind or uncomfortable conditions
+before they leave home. It helps students, workers, tourists and families make
+better daily decisions.
+
+
+TECHNICAL SPECIFICATIONS AND FEATURES
+
+Future features
+
+1. Live weather APIs
+Uses geolocation, current weather and a 3-day forecast for any city.
+
+2. AI climate advice
+Transforms weather numbers into clear actions such as drink water, take a coat
+or avoid strong wind.
+
+3. Country context
+Shows the flag, capital, languages, currency and population to help travellers
+understand the place.
+
+4. Smart cache
+Saves recent searches for 30 minutes so the app is faster and uses fewer
+requests.
+
+
+ADVANTAGES AND HOW IT IMPROVES PEOPLE'S LIVES
+
+Useful for real daily decisions
+
+Safety: it gives warnings before heat, rain or wind becomes dangerous.
+
+Travel: it combines weather and country information in one place.
+
+Time saving: users do not need to open different websites to understand a
+destination.
+
+Accessibility: the advice is written in simple language, not only technical
+weather data.
+
+
+WHY IT IS THE BEST APP POSSIBLE
+
+ClimaAtlas Future explains the weather, it does not just display it.
+
+Many weather apps show numbers, but ClimaAtlas Future explains what those
+numbers mean for your day. It is the best option because it mixes real APIs,
+useful recommendations, travel context and a clean interface.
+
+
+VIDEO PRESENTATION SCRIPT
+
+1. Hello, today I am presenting ClimaAtlas Future, a future weather app.
+
+2. It shows the current weather, the next 3 days, country information and city
+information.
+
+3. The goal is to help people prepare before weather conditions become
+uncomfortable or dangerous.
+
+4. Its main features are live APIs, AI safety advice, country context and smart
+cache.
+
+5. It improves people's lives because it saves time, helps travellers and gives
+clear recommendations.
+
+6. I think it is the best weather app because it explains what the weather
+means for real life.
