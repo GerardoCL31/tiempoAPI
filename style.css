@@ -25,7 +25,7 @@ html {
 
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", "Trebuchet MS", Arial, sans-serif;
   background:
     linear-gradient(rgba(53, 224, 208, 0.055) 1px, transparent 1px),
     linear-gradient(90deg, rgba(53, 224, 208, 0.055) 1px, transparent 1px),
@@ -34,6 +34,7 @@ body {
     linear-gradient(180deg, #081116 0%, #0d1b22 48%, #10130f 100%);
   background-size: 44px 44px, 44px 44px, auto, auto, auto;
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button,
@@ -45,6 +46,7 @@ input {
   width: min(1060px, calc(100% - 24px));
   margin: 0 auto;
   padding: 28px 0 48px;
+  overflow-x: hidden;
 }
 
 .hero,
@@ -102,6 +104,7 @@ p {
 
 h1 {
   margin-bottom: 10px;
+  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   font-size: clamp(2.7rem, 8vw, 5.8rem);
   line-height: 0.95;
   letter-spacing: 0;
@@ -110,6 +113,7 @@ h1 {
 
 h2 {
   margin-bottom: 12px;
+  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   font-size: clamp(1.7rem, 4vw, 3rem);
   line-height: 1.05;
   letter-spacing: 0;
@@ -205,9 +209,11 @@ h3 {
   display: grid;
   gap: 20px;
   margin-bottom: 20px;
+  min-width: 0;
 }
 
 .card {
+  min-width: 0;
   padding: 22px;
 }
 
@@ -275,8 +281,44 @@ h3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.hourly-section {
+  margin-bottom: 20px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hourly {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding-bottom: 6px;
+  scrollbar-color: rgba(53, 224, 208, 0.55) rgba(2, 11, 14, 0.35);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}
+
+.hourly::-webkit-scrollbar {
+  height: 10px;
+}
+
+.hourly::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(2, 11, 14, 0.35);
+}
+
+.hourly::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(2, 11, 14, 0.35);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), #2c8dff);
+}
+
 .stat,
 .forecast-item,
+.hourly-item,
 .mini-card,
 .advice-box {
   border: 1px solid var(--line);
@@ -285,11 +327,41 @@ h3 {
   background: rgba(2, 11, 14, 0.42);
 }
 
+.hourly-item {
+  flex: 0 0 150px;
+}
+
 .stat span {
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.hourly-item strong,
+.hourly-item p,
+.hourly-item span,
+.hourly-item small {
+  display: block;
+}
+
+.hourly-item p {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.hourly-item span {
+  min-height: 38px;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.hourly-item small {
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .advice-box {

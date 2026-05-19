@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClimaAtlas Future</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <main class="container">
@@ -70,6 +71,11 @@
           <p id="ai-advice">Search for a city to receive a weather safety plan.</p>
         </div>
 
+        <div class="hourly-section">
+          <p class="section-label">Next 12 hours</p>
+          <div id="hourly" class="hourly"></div>
+        </div>
+
         <div>
           <p class="section-label">Next 3 days</p>
           <div id="forecast" class="forecast"></div>
@@ -103,7 +109,8 @@
       </div>
     </section>
 
+  </main>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

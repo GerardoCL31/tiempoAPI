@@ -1,11 +1,12 @@
 const CACHE_TTL_MS = 30 * 60 * 1000;
-const CACHE_PREFIX = "climaatlas:v2:";
+const CACHE_PREFIX = "climaatlas:v3:";
 
 const form = document.getElementById("search-form");
 const cityInput = document.getElementById("city-input");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const forecastEl = document.getElementById("forecast");
+const hourlyEl = document.getElementById("hourly");
 
 const el = {
   placeLine: document.getElementById("place-line"),
@@ -64,7 +65,14 @@ function norm(text) {
 }
 
 function readCache(key) {
-  const raw = localStorage.getItem(CACHE_PREFIX + key);
+  let raw = null;
+
+  try {
+    raw = localStorage.getItem(CACHE_PREFIX + key);
+  } catch (error) {
+    return null;
+  }
+
   if (!raw) {
     return null;
   }
@@ -72,18 +80,24 @@ function readCache(key) {
   try {
     const saved = JSON.parse(raw);
     if (Date.now() - saved.savedAt > CACHE_TTL_MS) {
-      localStorage.removeItem(CACHE_PREFIX + key);
+      try {
+        localStorage.removeItem(CACHE_PREFIX + key);
+      } catch (error) {}
       return null;
     }
     return saved.payload;
-  } catch {
-    localStorage.removeItem(CACHE_PREFIX + key);
+  } catch (error) {
+    try {
+      localStorage.removeItem(CACHE_PREFIX + key);
+    } catch (error) {}
     return null;
   }
 }
 
 function writeCache(key, payload) {
-  localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ savedAt: Date.now(), payload }));
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ savedAt: Date.now(), payload }));
+  } catch (error) {}
 }
 
 async function cachedFetchJson(key, url) {
@@ -92,11 +106,12 @@ async function cachedFetchJson(key, url) {
     return { data: cached, source: "cache" };
   }
 
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 8000);
+  const hasAbortController = typeof AbortController !== "undefined";
+  const controller = hasAbortController ? new AbortController() : null;
+  const timeout = hasAbortController ? window.setTimeout(() => controller.abort(), 8000) : null;
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, controller ? { signal: controller.signal } : {});
     if (!response.ok) {
       throw new Error(`Request failed (${response.status})`);
     }
@@ -105,7 +120,9 @@ async function cachedFetchJson(key, url) {
     writeCache(key, data);
     return { data, source: "api" };
   } finally {
-    window.clearTimeout(timeout);
+    if (timeout) {
+      window.clearTimeout(timeout);
+    }
   }
 }
 
@@ -117,7 +134,7 @@ async function getCity(query) {
   url.searchParams.set("format", "json");
 
   const { data, source } = await cachedFetchJson(`geo:${norm(query)}`, url.toString());
-  if (!data.results?.length) {
+  if (!data.results || !data.results.length) {
     throw new Error("City not found.");
   }
 
@@ -129,6 +146,7 @@ function getWeather(lat, lon) {
   url.searchParams.set("latitude", lat);
   url.searchParams.set("longitude", lon);
   url.searchParams.set("current", "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code");
+  url.searchParams.set("hourly", "temperature_2m,precipitation_probability,weather_code,wind_speed_10m");
   url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max");
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("forecast_days", "3");
@@ -140,7 +158,7 @@ async function getCountry(code) {
     `country:${code}`,
     `https://restcountries.com/v3.1/alpha/${encodeURIComponent(code)}`
   );
-  return { country: Array.isArray(data) ? data[0] : data, source };
+  return { country: Array.isArray(data) ? data[0] : data || null, source };
 }
 
 function getArticle(name) {
@@ -177,7 +195,7 @@ function fallbackArticle(city) {
 }
 
 function temp(value) {
-  return `${Math.round(value)} deg C`;
+  return `${Math.round(value || 0)} deg C`;
 }
 
 function number(value) {
@@ -185,10 +203,11 @@ function number(value) {
 }
 
 function getAdvice(current, daily) {
-  const tempNow = current.temperature_2m;
-  const wind = current.wind_speed_10m;
-  const rainChance = Math.max(...daily.precipitation_probability_max.map((item) => item ?? 0));
-  const weatherCode = current.weather_code;
+  const tempNow = current.temperature_2m || 0;
+  const wind = current.wind_speed_10m || 0;
+  const rainValues = (daily.precipitation_probability_max || []).map((item) => item || 0);
+  const rainChance = rainValues.length ? Math.max.apply(null, rainValues) : 0;
+  const weatherCode = current.weather_code || 0;
 
   if (weatherCode >= 95) {
     return "Storm risk detected. Stay indoors if possible and avoid open areas.";
@@ -216,7 +235,7 @@ function getAdvice(current, daily) {
 function renderForecast(daily) {
   forecastEl.innerHTML = "";
 
-  daily.time.forEach((date, index) => {
+  (daily.time || []).forEach((date, index) => {
     const item = document.createElement("div");
     item.className = "forecast-item";
 
@@ -230,47 +249,112 @@ function renderForecast(daily) {
       <strong>${label}</strong>
       <p>${weatherLabels[daily.weather_code[index]] || "No data"}</p>
       <p>${temp(daily.temperature_2m_min[index])} / ${temp(daily.temperature_2m_max[index])}</p>
-      <p>Rain: ${daily.precipitation_probability_max[index] ?? 0}%</p>
+      <p>Rain: ${(daily.precipitation_probability_max && daily.precipitation_probability_max[index]) || 0}%</p>
     `;
 
     forecastEl.appendChild(item);
   });
 }
 
+function renderHourly(hourly) {
+  hourlyEl.innerHTML = "";
+
+  const times = hourly.time || [];
+  const now = Date.now();
+  let startIndex = 0;
+
+  for (let index = 0; index < times.length; index += 1) {
+    if (new Date(times[index]).getTime() >= now) {
+      startIndex = index;
+      break;
+    }
+  }
+
+  const endIndex = Math.min(startIndex + 12, times.length);
+
+  if (!times.length || startIndex >= endIndex) {
+    const item = document.createElement("div");
+    item.className = "hourly-item";
+    item.innerHTML = `
+      <strong>Now</strong>
+      <p>No data</p>
+      <span>Hourly forecast is not available right now.</span>
+      <small>Try another city later.</small>
+    `;
+    hourlyEl.appendChild(item);
+    return;
+  }
+
+  for (let index = startIndex; index < endIndex; index += 1) {
+    const item = document.createElement("div");
+    item.className = "hourly-item";
+
+    const hour = new Date(times[index]).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const code = hourly.weather_code && hourly.weather_code[index];
+    const rain = hourly.precipitation_probability && hourly.precipitation_probability[index];
+    const wind = hourly.wind_speed_10m && hourly.wind_speed_10m[index];
+
+    item.innerHTML = `
+      <strong>${hour}</strong>
+      <p>${temp(hourly.temperature_2m && hourly.temperature_2m[index])}</p>
+      <span>${weatherLabels[code] || "No data"}</span>
+      <small>Rain ${rain || 0}% - Wind ${Math.round(wind || 0)} km/h</small>
+    `;
+
+    hourlyEl.appendChild(item);
+  }
+}
+
 function render(city, weather, country, article, sourceLabel) {
-  const countryName = country.name?.common || city.country;
+  country = country || fallbackCountry(city);
+  article = article || fallbackArticle(city);
+
+  const countryName = (country.name && country.name.common) || city.country || "No data";
   const languages = country.languages ? Object.values(country.languages).join(", ") : "No data";
   const currencies = country.currencies
     ? Object.values(country.currencies).map((item) => item.name).join(", ")
     : "No data";
+  const flagUrl = country.flags && country.flags.png ? country.flags.png : "";
+  const articleUrl =
+    article.content_urls && article.content_urls.desktop && article.content_urls.desktop.page
+      ? article.content_urls.desktop.page
+      : `https://en.wikipedia.org/wiki/${encodeURIComponent(city.name)}`;
 
   el.placeLine.textContent = `${city.country}${city.admin1 ? ` - ${city.admin1}` : ""}`;
   el.cityName.textContent = city.name;
   el.coords.textContent = `Lat ${city.latitude.toFixed(2)} - Lon ${city.longitude.toFixed(2)} - ${weather.timezone}`;
   el.sourceBadge.textContent = sourceLabel;
 
-  el.weatherText.textContent = weatherLabels[weather.current.weather_code] || "No data";
-  el.temperature.textContent = temp(weather.current.temperature_2m);
-  el.feelsLike.textContent = temp(weather.current.apparent_temperature);
-  el.humidity.textContent = `${weather.current.relative_humidity_2m}%`;
-  el.wind.textContent = `${Math.round(weather.current.wind_speed_10m)} km/h`;
-  el.aiAdvice.textContent = getAdvice(weather.current, weather.daily);
+  const current = weather.current || {};
+  const daily = weather.daily || {};
+  const hourly = weather.hourly || {};
 
-  el.flag.src = country.flags?.png || "";
+  el.weatherText.textContent = weatherLabels[current.weather_code] || "No data";
+  el.temperature.textContent = temp(current.temperature_2m);
+  el.feelsLike.textContent = temp(current.apparent_temperature);
+  el.humidity.textContent = `${current.relative_humidity_2m || 0}%`;
+  el.wind.textContent = `${Math.round(current.wind_speed_10m || 0)} km/h`;
+  el.aiAdvice.textContent = getAdvice(current, daily);
+
+  el.flag.src = flagUrl;
   el.flag.alt = `Flag of ${countryName}`;
   el.countryName.textContent = countryName;
   el.countryRegion.textContent = `${country.region || "No data"}${country.subregion ? ` - ${country.subregion}` : ""}`;
-  el.countryCapital.textContent = country.capital?.join(", ") || "No data";
+  el.countryCapital.textContent = country.capital && country.capital.length ? country.capital.join(", ") : "No data";
   el.countryPopulation.textContent = number(country.population || 0);
   el.countryLanguages.textContent = languages;
   el.countryCurrency.textContent = currencies;
 
-  el.articleImage.src = article.thumbnail?.source || country.flags?.png || "";
+  el.articleImage.src = article.thumbnail && article.thumbnail.source ? article.thumbnail.source : flagUrl;
   el.articleImage.alt = article.title || city.name;
   el.articleExtract.textContent = article.extract || "Wikipedia did not return a summary for this city.";
-  el.articleLink.href = article.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(city.name)}`;
+  el.articleLink.href = articleUrl;
 
-  renderForecast(weather.daily);
+  renderHourly(hourly);
+  renderForecast(daily);
   resultsEl.classList.remove("hidden");
 }
 
@@ -284,9 +368,13 @@ async function loadCity(query) {
 
     const { city, source: citySource } = await getCity(query);
     const { data: weather, source: weatherSource } = await getWeather(city.latitude, city.longitude);
-    const [countryResult, articleResult] = await Promise.allSettled([
-      getCountry(city.country_code),
-      getArticle(city.name),
+    const [countryResult, articleResult] = await Promise.all([
+      getCountry(city.country_code)
+        .then((value) => ({ status: "fulfilled", value }))
+        .catch(() => ({ status: "rejected" })),
+      getArticle(city.name)
+        .then((value) => ({ status: "fulfilled", value }))
+        .catch(() => ({ status: "rejected" })),
     ]);
 
     const countryData =
